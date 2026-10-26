@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Agenda" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/ground</item>
+        <item name="android:statusBarColor">@color/ground</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+    <color name="ground">#FFFBF8F7</color>
+    <color name="icon_bg">#FFFFFFFF</color>
+</resources>

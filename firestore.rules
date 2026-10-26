@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// Regole di accesso per Acqua di Rose.
+// - "pubblico": listino e giorni di chiusura, leggibili da tutti, scritti solo dalla titolare.
+// - "clienti": profilo di ogni cliente registrata, visibile solo a lei e alla titolare.
+// - "richieste": richieste di appuntamento; la cliente crea e vede solo le proprie,
+//   può annullarle finché sono in attesa; la titolare vede e gestisce tutto.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Account della titolare (email usate per collegare il tablet).
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['ist.acquadirose@gmail.com'];
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function shortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    match /pubblico/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /clienti/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nome', 'telefono', 'email', 'privacy', 'creato'])
+        && shortString(request.resource.data.nome, 80)
+        && request.resource.data.nome.size() > 1
+        && shortString(request.resource.data.telefono, 25)
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.privacy == true;
+      allow delete: if isAdmin();
+    }
+
+    match /richieste/{id} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['uid', 'nome', 'telefono', 'email', 'data', 'fascia', 'trattamento', 'note', 'stato', 'creata'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.stato == 'in_attesa'
+        && request.resource.data.creata == request.time
+        && request.resource.data.data is string
+        && request.resource.data.data.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && request.resource.data.fascia in ['mattina', 'pomeriggio', 'indifferente']
+        && shortString(request.resource.data.nome, 80)
+        && shortString(request.resource.data.telefono, 25)
+        && shortString(request.resource.data.trattamento, 80)
+        && shortString(request.resource.data.note, 500);
+
+      // La cliente può solo annullare una richiesta ancora in attesa.
+      allow update: if isAdmin()
+        || (signedIn()
+            && resource.data.uid == request.auth.uid
+            && resource.data.stato == 'in_attesa'
+            && request.resource.data.stato == 'annullata'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'aggiornata']));
+
+      allow delete: if isAdmin();
+    }
+  }
+}

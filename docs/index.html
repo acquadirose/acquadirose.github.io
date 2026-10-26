@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Acqua di Rose – Prenotazioni</title>
+<meta name="description" content="Richiedi un appuntamento da Acqua di Rose, istituto di bellezza a Tortoreto.">
+<meta name="theme-color" content="#FBF8F7">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #FBF8F7;
+    --surface: #FFFFFF;
+    --ink: #231C1F;
+    --muted: #6B5E63;
+    --line: #EDE3E3;
+    --rose: #A23E62;
+    --rose-soft: #F7E4EB;
+    --blush: #E9C9D3;
+    --ok-bg: #DCEFE6; --ok-fg: #1F5C46;
+    --wait-bg: #FBEBD3; --wait-fg: #7A4A0C;
+    --no-bg: #F8E1E1; --no-fg: #8E2F25;
+    --off-bg: #ECE8E8; --off-fg: #4F4649;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font: 16px/1.5 Manrope, system-ui, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ""; position: fixed; right: -80px; bottom: -80px; width: 420px; height: 420px;
+    background: url(rose.png) center/contain no-repeat; opacity: .06; pointer-events: none; z-index: 0;
+  }
+  main { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: 24px 16px 48px; }
+  header.brand { text-align: center; padding: 8px 0 4px; }
+  header.brand img { width: min(280px, 72vw); height: auto; display: inline-block; }
+  .ornament { display: flex; align-items: center; gap: 12px; margin: 8px auto 20px; max-width: 280px; }
+  .ornament span { flex: 1; height: 1px; background: var(--blush); }
+  header.brand .ornament img { width: 22px; height: 22px; }
+  h1, h2 { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; letter-spacing: .01em; margin: 0; }
+  h1 { font-size: 30px; line-height: 1.15; }
+  h2 { font-size: 24px; }
+  p.lead { color: var(--muted); margin: 6px 0 18px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+  input, select, textarea {
+    width: 100%; font: inherit; color: var(--ink); background: #fff;
+    border: 1px solid #CBBDC0; border-radius: 10px; padding: 12px 14px; min-height: 48px;
+  }
+  textarea { min-height: 84px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--rose); outline-offset: 1px; border-color: var(--rose); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; min-width: 0; }
+  button, .btn {
+    font: 600 16px Manrope, sans-serif; border-radius: 12px; padding: 12px 18px; min-height: 48px;
+    border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .primary { background: var(--ink); color: #fff; width: 100%; margin-top: 18px; }
+  .primary:disabled { opacity: .5; cursor: default; }
+  .ghost { background: transparent; color: var(--ink); border-color: #CBBDC0; }
+  .link { background: none; border: 0; color: var(--rose); padding: 8px 0; min-height: 44px; font-weight: 600; }
+  .tabs { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 16px; }
+  .tabs button { flex: 1; background: transparent; color: var(--muted); }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { flex: 1; min-width: 96px; background: #fff; border: 1px solid #CBBDC0; color: var(--ink); font-weight: 500; }
+  .chip[aria-pressed="true"] { background: var(--rose-soft); border-color: var(--rose); color: #5C1F36; font-weight: 700; }
+  .check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); margin-top: 16px; font-weight: 400; }
+  .check input { width: 22px; height: 22px; min-height: 0; margin-top: 1px; flex: none; accent-color: var(--rose); }
+  .msg { border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 14px; }
+  .msg.err { background: var(--no-bg); color: var(--no-fg); }
+  .msg.ok { background: var(--ok-bg); color: var(--ok-fg); }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .hello { font-family: "Cormorant Garamond", Georgia, serif; font-size: 22px; }
+  .req { border-top: 1px solid var(--line); padding: 14px 0; }
+  .req:first-child { border-top: 0; padding-top: 0; }
+  .req .when { font-weight: 700; }
+  .req .what { color: var(--muted); font-size: 14px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; margin-top: 6px; }
+  .b-in_attesa { background: var(--wait-bg); color: var(--wait-fg); }
+  .b-confermata { background: var(--ok-bg); color: var(--ok-fg); }
+  .b-rifiutata { background: var(--no-bg); color: var(--no-fg); }
+  .b-annullata { background: var(--off-bg); color: var(--off-fg); }
+  .note-centro { background: var(--rose-soft); border-radius: 10px; padding: 10px 12px; margin-top: 8px; font-size: 14px; }
+  .empty { color: var(--muted); text-align: center; padding: 8px 0; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 28px; }
+  [hidden] { display: none !important; }
+  .spinner { width: 28px; height: 28px; border: 3px solid var(--blush); border-top-color: var(--rose); border-radius: 50%; animation: spin 1s linear infinite; margin: 40px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<main>
+  <header class="brand">
+    <img src="logo.png" alt="Acqua di Rose – Istituto di bellezza">
+    <div class="ornament" aria-hidden="true"><span></span><img src="rose.png" alt=""><span></span></div>
+  </header>
+
+  <div id="loading" class="spinner" role="status" aria-label="Caricamento"></div>
+
+  <!-- ── Accesso / Registrazione ── -->
+  <section id="auth" hidden>
+    <h1>Prenota il tuo momento di bellezza</h1>
+    <p class="lead">Accedi o registrati per richiedere un appuntamento. Ti confermeremo l'orario il prima possibile.</p>
+
+    <div class="tabs" role="tablist">
+      <button id="tab-login" role="tab" aria-selected="true">Accedi</button>
+      <button id="tab-signup" role="tab" aria-selected="false">Registrati</button>
+    </div>
+
+    <form id="login-form" class="card" novalidate>
+      <label for="li-email">Email</label>
+      <input id="li-email" type="email" autocomplete="email" required>
+      <label for="li-pass">Password</label>
+      <input id="li-pass" type="password" autocomplete="current-password" required>
+      <button class="primary" type="submit">Accedi</button>
+      <button class="link" type="button" id="forgot">Password dimenticata?</button>
+      <div id="login-msg" class="msg" hidden></div>
+    </form>
+
+    <form id="signup-form" class="card" novalidate hidden>
+      <div class="row">
+        <div><label for="su-nome">Nome</label><input id="su-nome" autocomplete="given-name" required></div>
+        <div><label for="su-cognome">Cognome</label><input id="su-cognome" autocomplete="family-name" required></div>
+      </div>
+      <label for="su-tel">Cellulare</label>
+      <input id="su-tel" type="tel" autocomplete="tel" inputmode="tel" placeholder="es. 333 1234567" required>
+      <label for="su-email">Email</label>
+      <input id="su-email" type="email" autocomplete="email" required>
+      <label for="su-pass">Password (almeno 6 caratteri)</label>
+      <input id="su-pass" type="password" autocomplete="new-password" minlength="6" required>
+      <label class="check"><input id="su-privacy" type="checkbox" required>
+        <span>Acconsento al trattamento dei miei dati personali da parte di Acqua di Rose per la gestione degli appuntamenti e dei relativi promemoria.</span></label>
+      <button class="primary" type="submit">Crea il mio account</button>
+      <div id="signup-msg" class="msg" hidden></div>
+    </form>
+  </section>
+
+  <!-- ── Area cliente ── -->
+  <section id="home" hidden>
+    <div class="topbar">
+      <span class="hello" id="hello">Ciao!</span>
+      <button class="ghost" id="logout" type="button">Esci</button>
+    </div>
+
+    <form id="req-form" class="card" novalidate>
+      <h2>Richiedi un appuntamento</h2>
+      <label for="rq-tratt">Trattamento</label>
+      <select id="rq-tratt" required></select>
+      <label for="rq-data">Giorno</label>
+      <input id="rq-data" type="date" required>
+      <div class="hint" id="closed-hint"></div>
+      <label id="fascia-label">Fascia oraria preferita</label>
+      <div class="chips" role="group" aria-labelledby="fascia-label">
+        <button type="button" class="chip" data-fascia="mattina" aria-pressed="true">Mattina</button>
+        <button type="button" class="chip" data-fascia="pomeriggio" aria-pressed="false">Pomeriggio</button>
+        <button type="button" class="chip" data-fascia="indifferente" aria-pressed="false">Indifferente</button>
+      </div>
+      <label for="rq-note">Note (facoltative)</label>
+      <textarea id="rq-note" maxlength="500" placeholder="es. dopo le 16, colore smalto, operatrice preferita…"></textarea>
+      <button class="primary" type="submit" id="rq-send">Invia richiesta</button>
+      <div id="req-msg" class="msg" hidden></div>
+    </form>
+
+    <div class="card">
+      <h2>Le mie richieste</h2>
+      <div id="my-list" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <footer>Acqua di Rose · Istituto di bellezza · Tortoreto</footer>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  sendPasswordResetEmail, signOut, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, collection, query, where,
+  onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDmyji8kB3eXOUOsSENqT7BX6gcn0vhItA",
+  authDomain: "acquadirose-a0ddb.firebaseapp.com",
+  projectId: "acquadirose-a0ddb",
+  storageBucket: "acquadirose-a0ddb.firebasestorage.app",
+  messagingSenderId: "863311473078",
+  appId: "1:863311473078:web:0e108f4642f72302d7f917"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+auth.languageCode = "it";
+const db = getFirestore(app);
+await setPersistence(auth, browserLocalPersistence);
+
+const $ = (id) => document.getElementById(id);
+const show = (el, on = true) => { el.hidden = !on; };
+let profile = null;
+let info = { trattamenti: [], giorniChiusi: [] };
+let fascia = "mattina";
+let unsubList = null;
+
+// ── Messaggi d'errore leggibili ──
+function errText(e) {
+  const c = (e && e.code) || "";
+  const map = {
+    "auth/invalid-email": "L'indirizzo email non è valido.",
+    "auth/missing-password": "Inserisci la password.",
+    "auth/invalid-credential": "Email o password non corrette.",
+    "auth/wrong-password": "Email o password non corrette.",
+    "auth/user-not-found": "Non esiste un account con questa email.",
+    "auth/email-already-in-use": "Esiste già un account con questa email: prova ad accedere.",
+    "auth/weak-password": "La password deve avere almeno 6 caratteri.",
+    "auth/too-many-requests": "Troppi tentativi: riprova tra qualche minuto.",
+    "auth/network-request-failed": "Connessione assente. Controlla internet e riprova.",
+    "permission-denied": "Operazione non consentita.",
+  };
+  return map[c] || "Si è verificato un errore. Riprova.";
+}
+function message(el, text, ok = false) {
+  el.textContent = text; el.className = "msg " + (ok ? "ok" : "err"); show(el, !!text);
+}
+
+// ── Tab accedi / registrati ──
+function setTab(signup) {
+  $("tab-login").setAttribute("aria-selected", String(!signup));
+  $("tab-signup").setAttribute("aria-selected", String(signup));
+  show($("login-form"), !signup); show($("signup-form"), signup);
+}
+$("tab-login").onclick = () => setTab(false);
+$("tab-signup").onclick = () => setTab(true);
+
+$("login-form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const btn = ev.submitter; btn.disabled = true;
+  try {
+    await signInWithEmailAndPassword(auth, $("li-email").value.trim(), $("li-pass").value);
+  } catch (e) { message($("login-msg"), errText(e)); }
+  btn.disabled = false;
+};
+
+$("forgot").onclick = async () => {
+  const email = $("li-email").value.trim();
+  if (!email) { message($("login-msg"), "Scrivi la tua email qui sopra, poi premi di nuovo «Password dimenticata?»."); return; }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    message($("login-msg"), "Ti abbiamo inviato un'email per reimpostare la password (controlla anche lo spam).", true);
+  } catch (e) { message($("login-msg"), errText(e)); }
+};
+
+$("signup-form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const nome = ($("su-nome").value.trim() + " " + $("su-cognome").value.trim()).trim();
+  const tel = $("su-tel").value.trim();
+  const email = $("su-email").value.trim();
+  if (!$("su-nome").value.trim() || !$("su-cognome").value.trim()) return message($("signup-msg"), "Inserisci nome e cognome.");
+  if (tel.replace(/\D/g, "").length < 8) return message($("signup-msg"), "Inserisci un numero di cellulare valido.");
+  if (!$("su-privacy").checked) return message($("signup-msg"), "Per registrarti serve il consenso al trattamento dei dati.");
+  const btn = ev.submitter; btn.disabled = true;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, $("su-pass").value);
+    profile = { nome, telefono: tel, email: cred.user.email, privacy: true, creato: serverTimestamp() };
+    await setDoc(doc(db, "clienti", cred.user.uid), profile);
+    $("hello").textContent = "Ciao " + nome.split(" ")[0] + "!";
+  } catch (e) { message($("signup-msg"), errText(e)); }
+  btn.disabled = false;
+};
+
+$("logout").onclick = () => signOut(auth);
+
+// ── Richiesta ──
+document.querySelectorAll(".chip").forEach((b) => {
+  b.onclick = () => {
+    fascia = b.dataset.fascia;
+    document.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  };
+});
+
+const giorni = ["", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+function isoToday(offset = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function dow(iso) { const d = new Date(iso + "T12:00:00"); return d.getDay() === 0 ? 7 : d.getDay(); }
+function fmtDate(iso) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" });
+}
+
+$("rq-data").min = isoToday(0);
+$("rq-data").max = isoToday(120);
+$("rq-data").oninput = () => {
+  const v = $("rq-data").value;
+  $("closed-hint").textContent = v && info.giorniChiusi.includes(dow(v))
+    ? "Attenzione: di " + giorni[dow(v)] + " il centro è chiuso." : "";
+};
+
+$("req-form").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const data = $("rq-data").value;
+  const tratt = $("rq-tratt").value;
+  if (!tratt) return message($("req-msg"), "Scegli il trattamento.");
+  if (!data) return message($("req-msg"), "Scegli il giorno.");
+  if (data < isoToday(0)) return message($("req-msg"), "Il giorno è già passato.");
+  if (info.giorniChiusi.includes(dow(data))) return message($("req-msg"), "Di " + giorni[dow(data)] + " il centro è chiuso: scegli un altro giorno.");
+  const btn = $("rq-send"); btn.disabled = true;
+  try {
+    if (!profile) {
+      const p = await getDoc(doc(db, "clienti", auth.currentUser.uid));
+      if (p.exists()) profile = p.data();
+    }
+    await addDoc(collection(db, "richieste"), {
+      uid: auth.currentUser.uid,
+      nome: profile?.nome || "",
+      telefono: profile?.telefono || "",
+      email: auth.currentUser.email,
+      data, fascia, trattamento: tratt,
+      note: $("rq-note").value.trim(),
+      stato: "in_attesa",
+      creata: serverTimestamp(),
+    });
+    message($("req-msg"), "Richiesta inviata! Riceverai la conferma con l'orario qui sotto e su WhatsApp.", true);
+    $("rq-note").value = "";
+  } catch (e) { message($("req-msg"), errText(e)); }
+  btn.disabled = false;
+};
+
+const statoLabel = { in_attesa: "In attesa di conferma", confermata: "Confermata", rifiutata: "Non disponibile", annullata: "Annullata" };
+const fasciaLabel = { mattina: "mattina", pomeriggio: "pomeriggio", indifferente: "orario indifferente" };
+
+function renderList(items) {
+  const box = $("my-list");
+  box.textContent = "";
+  if (!items.length) {
+    const p = document.createElement("p"); p.className = "empty"; p.textContent = "Nessuna richiesta per ora.";
+    box.append(p); return;
+  }
+  items.sort((a, b) => (b.data + (b.ora || "")).localeCompare(a.data + (a.ora || "")));
+  for (const r of items) {
+    const div = document.createElement("div"); div.className = "req";
+    const when = document.createElement("div"); when.className = "when";
+    when.textContent = fmtDate(r.data) + (r.stato === "confermata" && r.ora ? " alle " + r.ora : " · " + fasciaLabel[r.fascia]);
+    const what = document.createElement("div"); what.className = "what";
+    what.textContent = r.trattamento + (r.operatrice ? " · con " + r.operatrice : "");
+    const badge = document.createElement("span"); badge.className = "badge b-" + r.stato;
+    badge.textContent = statoLabel[r.stato] || r.stato;
+    div.append(when, what, badge);
+    if (r.messaggio) {
+      const m = document.createElement("div"); m.className = "note-centro"; m.textContent = r.messaggio; div.append(m);
+    }
+    if (r.stato === "in_attesa") {
+      const b = document.createElement("button"); b.className = "link"; b.type = "button"; b.textContent = "Annulla richiesta";
+      b.onclick = async () => {
+        if (!confirm("Vuoi annullare questa richiesta?")) return;
+        try { await updateDoc(doc(db, "richieste", r.id), { stato: "annullata", aggiornata: serverTimestamp() }); }
+        catch (e) { alert(errText(e)); }
+      };
+      div.append(document.createElement("br"), b);
+    }
+    box.append(div);
+  }
+}
+
+async function loadInfo() {
+  try {
+    const snap = await getDoc(doc(db, "pubblico", "info"));
+    if (snap.exists()) info = { trattamenti: [], giorniChiusi: [], ...snap.data() };
+  } catch (e) { /* listino non ancora pubblicato */ }
+  const sel = $("rq-tratt");
+  sel.textContent = "";
+  const first = document.createElement("option"); first.value = ""; first.textContent = "Scegli…"; sel.append(first);
+  const list = info.trattamenti.length ? info.trattamenti : ["Viso", "Mani", "Piedi", "Epilazione", "Corpo", "Altro"];
+  for (const t of list) { const o = document.createElement("option"); o.value = t; o.textContent = t; sel.append(o); }
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (unsubList) { unsubList(); unsubList = null; }
+  show($("loading"), false);
+  if (!user) { profile = null; show($("home"), false); show($("auth"), true); return; }
+  show($("auth"), false); show($("home"), true);
+  try {
+    const p = await getDoc(doc(db, "clienti", user.uid));
+    if (p.exists()) profile = p.data();
+  } catch (e) { /* ignorato */ }
+  $("hello").textContent = "Ciao " + ((profile?.nome || "").split(" ")[0] || "") + "!";
+  await loadInfo();
+  const q = query(collection(db, "richieste"), where("uid", "==", user.uid));
+  unsubList = onSnapshot(q, (snap) => renderList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    () => renderList([]));
+});
+</script>
+</body>
+</html>
