@@ -17,7 +17,7 @@ object Backup {
             val s = prefs.settings.value
             val root = JSONObject()
                 .put("app", "acqua-di-rose-agenda")
-                .put("version", 4)
+                .put("version", 5)
                 .put(
                     "settings", JSONObject()
                         .put("centerName", s.centerName)
@@ -60,6 +60,8 @@ object Backup {
                         .put("notes", it.notes)
                         .put("createdAt", it.createdAt)
                         .put("birthdayMsgYear", it.birthdayMsgYear)
+                        .put("birthYear", it.birthYear)
+                        .put("city", it.city)
                 }))
                 .put("shifts", JSONArray(dao.allShifts().map {
                     JSONObject().put("operatorId", it.operatorId).put("dayOfWeek", it.dayOfWeek)
@@ -122,6 +124,8 @@ object Backup {
                     notes = it.optString("notes"),
                     createdAt = it.optLong("createdAt", System.currentTimeMillis()),
                     birthdayMsgYear = it.optInt("birthdayMsgYear"),
+                    birthYear = it.optInt("birthYear"),
+                    city = it.optString("city"),
                 )
             }
             val shifts = (root.optJSONArray("shifts") ?: JSONArray()).objects().map {

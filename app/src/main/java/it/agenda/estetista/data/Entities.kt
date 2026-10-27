@@ -62,7 +62,52 @@ data class Client(
     val createdAt: Long = System.currentTimeMillis(),
     /** Anno dell'ultimo messaggio di compleanno inviato (0 = mai). */
     @ColumnInfo(defaultValue = "0") val birthdayMsgYear: Int = 0,
+    /** Anno di nascita (0 = non indicato). */
+    @ColumnInfo(defaultValue = "0") val birthYear: Int = 0,
+    /** Comune di residenza. */
+    @ColumnInfo(defaultValue = "") val city: String = "",
 )
+
+/** Età in anni compiuti alla data indicata (tiene conto del compleanno se noto). */
+fun Client.age(on: java.time.LocalDate = java.time.LocalDate.now()): Int? {
+    if (birthYear <= 0) return null
+    var a = on.year - birthYear
+    val dm = birthdayDayMonth()
+    if (dm != null && (on.monthValue < dm.second || (on.monthValue == dm.second && on.dayOfMonth < dm.first))) a -= 1
+    return a.takeIf { it in 0..120 }
+}
+
+/** Fasce d'età usate in statistiche e filtri. */
+enum class AgeBand(val label: String, val range: IntRange) {
+    U25("Fino a 24", 0..24),
+    A25("25–34", 25..34),
+    A35("35–44", 35..44),
+    A45("45–54", 45..54),
+    A55("55–64", 55..64),
+    O65("65 e oltre", 65..120);
+
+    companion object {
+        fun of(age: Int?): AgeBand? = age?.let { a -> entries.firstOrNull { a in it.range } }
+    }
+}
+
+/** Comuni proposti di default (zona di Tortoreto), oltre a quelli già presenti in rubrica. */
+val COMUNI_VICINI = listOf(
+    "Tortoreto", "Alba Adriatica", "Giulianova", "Martinsicuro", "Colonnella", "Corropoli",
+    "Sant'Omero", "Nereto", "Controguerra", "Mosciano Sant'Angelo", "Bellante", "Teramo",
+    "Sant'Egidio alla Vibrata", "Ancarano", "Torano Nuovo", "Civitella del Tronto",
+    "San Benedetto del Tronto", "Roseto degli Abruzzi",
+)
+
+/** "alba adriatica" → "Alba Adriatica"; mantiene apostrofi e preposizioni minuscole. */
+fun normalizeCity(raw: String): String {
+    val small = setOf("di", "del", "della", "degli", "dei", "alla", "al", "in", "sul", "sulla")
+    return raw.trim().replace(Regex("\\s+"), " ").split(" ").mapIndexed { i, w ->
+        val lw = w.lowercase()
+        if (i > 0 && lw in small) lw
+        else lw.split("'").joinToString("'") { part -> part.replaceFirstChar { it.titlecase() } }
+    }.joinToString(" ")
+}
 
 /** Giorno e mese dal campo compleanno ("12/05", "12-5", "12.05.1990"...). */
 fun Client.birthdayDayMonth(): Pair<Int, Int>? {

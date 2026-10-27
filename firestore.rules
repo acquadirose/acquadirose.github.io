@@ -30,7 +30,11 @@ service cloud.firestore {
     match /clienti/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create, update: if signedIn() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['nome', 'telefono', 'email', 'privacy', 'creato'])
+        && request.resource.data.keys().hasOnly(['nome', 'telefono', 'email', 'comune', 'annoNascita', 'privacy', 'creato'])
+        && (!('comune' in request.resource.data) || shortString(request.resource.data.comune, 60))
+        && (!('annoNascita' in request.resource.data)
+            || (request.resource.data.annoNascita is int
+                && request.resource.data.annoNascita >= 1900 && request.resource.data.annoNascita <= 2030))
         && shortString(request.resource.data.nome, 80)
         && request.resource.data.nome.size() > 1
         && shortString(request.resource.data.telefono, 25)

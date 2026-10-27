@@ -15,6 +15,7 @@ import it.agenda.estetista.data.Client
 import it.agenda.estetista.data.birthdayDayMonth
 import it.agenda.estetista.data.PostIt
 import it.agenda.estetista.data.Shift
+import it.agenda.estetista.data.normalizeCity
 import it.agenda.estetista.data.Online
 import it.agenda.estetista.data.OnlineRequest
 import kotlinx.coroutines.delay
@@ -205,7 +206,7 @@ class AgendaViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Salva la scheda; restituisce l'id. Nome/telefono si propagano agli appuntamenti futuri. */
     suspend fun saveClient(c: Client): Long {
-        val clean = c.copy(name = c.name.trim(), phone = c.phone.trim())
+        val clean = c.copy(name = c.name.trim(), phone = c.phone.trim(), city = normalizeCity(c.city))
         return if (clean.id == 0L) {
             dao.insertClient(clean)
         } else {
@@ -299,10 +300,21 @@ class AgendaViewModel(app: Application) : AndroidViewModel(app) {
                 (r.telefono.isNotBlank() && digits(it.phone).isNotEmpty() && digits(it.phone) == digits(r.telefono)) ||
                     it.name.equals(r.nome.trim(), ignoreCase = true)
             }
+            val city = normalizeCity(r.comune)
             if (match == null) {
-                dao.insertClient(Client(name = r.nome.trim(), phone = r.telefono.trim(), email = r.email, notes = "Registrata online"))
-            } else if (match.email.isBlank() && r.email.isNotBlank()) {
-                dao.upsertClient(match.copy(email = r.email))
+                dao.insertClient(
+                    Client(
+                        name = r.nome.trim(), phone = r.telefono.trim(), email = r.email, notes = "Registrata online",
+                        city = city, birthYear = r.annoNascita,
+                    )
+                )
+            } else {
+                val upd = match.copy(
+                    email = match.email.ifBlank { r.email },
+                    city = match.city.ifBlank { city },
+                    birthYear = if (match.birthYear > 0) match.birthYear else r.annoNascita,
+                )
+                if (upd != match) dao.upsertClient(upd)
             }
         }
     }

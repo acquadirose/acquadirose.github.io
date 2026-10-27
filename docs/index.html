@@ -136,6 +136,17 @@
       </div>
       <label for="su-tel">Cellulare</label>
       <input id="su-tel" type="tel" autocomplete="tel" inputmode="tel" placeholder="es. 333 1234567" required>
+      <div class="row">
+        <div><label for="su-comune">Comune di residenza</label><input id="su-comune" list="comuni" autocomplete="address-level2" required></div>
+        <div><label for="su-anno">Anno di nascita</label><select id="su-anno"></select></div>
+      </div>
+      <datalist id="comuni">
+        <option value="Tortoreto"><option value="Alba Adriatica"><option value="Giulianova"><option value="Martinsicuro">
+        <option value="Colonnella"><option value="Corropoli"><option value="Sant'Omero"><option value="Nereto">
+        <option value="Controguerra"><option value="Mosciano Sant'Angelo"><option value="Bellante"><option value="Teramo">
+        <option value="Sant'Egidio alla Vibrata"><option value="Ancarano"><option value="Torano Nuovo">
+        <option value="San Benedetto del Tronto"><option value="Roseto degli Abruzzi">
+      </datalist>
       <label for="su-email">Email</label>
       <input id="su-email" type="email" autocomplete="email" required>
       <label for="su-pass">Password (almeno 6 caratteri)</label>
@@ -270,11 +281,15 @@ $("signup-form").onsubmit = async (ev) => {
   const email = $("su-email").value.trim();
   if (!$("su-nome").value.trim() || !$("su-cognome").value.trim()) return message($("signup-msg"), "Inserisci nome e cognome.");
   if (tel.replace(/\D/g, "").length < 8) return message($("signup-msg"), "Inserisci un numero di cellulare valido.");
+  const comune = $("su-comune").value.trim().replace(/\s+/g, " ");
+  if (comune.length < 2) return message($("signup-msg"), "Inserisci il comune di residenza.");
+  const anno = parseInt($("su-anno").value || "0", 10);
   if (!$("su-privacy").checked) return message($("signup-msg"), "Per registrarti serve il consenso al trattamento dei dati.");
   const btn = ev.submitter; btn.disabled = true;
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, $("su-pass").value);
-    profile = { nome, telefono: tel, email: cred.user.email, privacy: true, creato: serverTimestamp() };
+    profile = { nome, telefono: tel, email: cred.user.email, comune, privacy: true, creato: serverTimestamp() };
+    if (anno > 0) profile.annoNascita = anno;
     await setDoc(doc(db, "clienti", cred.user.uid), profile);
     $("hello").textContent = "Ciao " + nome.split(" ")[0] + "!";
   } catch (e) { message($("signup-msg"), errText(e)); }
@@ -282,6 +297,13 @@ $("signup-form").onsubmit = async (ev) => {
 };
 
 $("logout").onclick = () => signOut(auth);
+
+// Anni di nascita (facoltativo)
+(() => {
+  const sel = $("su-anno"), y = new Date().getFullYear();
+  const o = document.createElement("option"); o.value = ""; o.textContent = "Preferisco non dirlo"; sel.append(o);
+  for (let a = y - 12; a >= y - 100; a--) { const x = document.createElement("option"); x.value = a; x.textContent = a; sel.append(x); }
+})();
 
 // ── Richiesta ──
 document.querySelectorAll(".chip").forEach((b) => {

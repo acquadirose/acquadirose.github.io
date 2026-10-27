@@ -64,6 +64,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.agenda.estetista.AgendaViewModel
 import it.agenda.estetista.data.AppSettings
 import it.agenda.estetista.data.Client
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.AssistChip
+import it.agenda.estetista.data.COMUNI_VICINI
+import it.agenda.estetista.data.age
 import it.agenda.estetista.data.statusEnum
 import it.agenda.estetista.data.birthdayDayMonth
 import androidx.compose.runtime.LaunchedEffect
@@ -99,7 +103,7 @@ fun ClientsDialog(
     val q = query.trim()
     val digits = q.filter { it.isDigit() }
     val filtered = clients.filter {
-        q.isEmpty() || it.name.contains(q, ignoreCase = true) ||
+        q.isEmpty() || it.name.contains(q, ignoreCase = true) || it.city.contains(q, ignoreCase = true) ||
             (digits.length >= 3 && it.phone.filter { ch -> ch.isDigit() }.contains(digits))
     }
     val selected = clients.firstOrNull { it.id == selectedId }
@@ -138,7 +142,7 @@ fun ClientsDialog(
                     }
                     OutlinedTextField(
                         value = query, onValueChange = { query = it },
-                        placeholder = { Text("Cerca per nome o telefono") },
+                        placeholder = { Text("Cerca per nome, telefono o comune") },
                         leadingIcon = { Icon(Icons.Filled.Search, null) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -167,7 +171,12 @@ fun ClientsDialog(
                                 Spacer(Modifier.width(12.dp))
                                 Column(Modifier.weight(1f)) {
                                     Text(c.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    if (c.phone.isNotBlank()) Text(c.phone, style = MaterialTheme.typography.bodySmall, color = Rose.Muted)
+                                    val sub = listOfNotNull(
+                                        c.phone.takeIf { it.isNotBlank() },
+                                        c.city.takeIf { it.isNotBlank() },
+                                        c.age()?.let { "$it anni" },
+                                    ).joinToString(" · ")
+                                    if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodySmall, color = Rose.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 val n = visits[c.id] ?: 0
                                 Text(if (n == 1) "1 visita" else "$n visite", style = MaterialTheme.typography.bodySmall, color = Rose.Muted)
@@ -297,16 +306,27 @@ private fun ClientForm(
     var bMonth by remember(key) { mutableStateOf(parsedBirthday?.second ?: 0) }
     val birthday = if (bDay > 0 && bMonth > 0) "%02d/%02d".format(bDay, bMonth) else ""
     var notes by remember(key) { mutableStateOf(client.notes) }
+    var birthYear by remember(key) { mutableStateOf(client.birthYear) }
+    var city by remember(key) { mutableStateOf(client.city) }
     var askDelete by remember { mutableStateOf(false) }
+    val allClients by vm.clients.collectAsStateWithLifecycle()
+    val knownCities = remember(allClients) {
+        (allClients.map { it.city }.filter { it.isNotBlank() } + COMUNI_VICINI).distinctBy { it.lowercase() }
+    }
 
     val isNew = client.id == 0L
-    val current = client.copy(name = name, phone = phone, email = email, birthday = birthday, notes = notes)
+    val current = client.copy(
+        name = name, phone = phone, email = email, birthday = birthday, notes = notes,
+        birthYear = birthYear, city = city.trim(),
+    )
     val originalBirthday = parsedBirthday?.let { "%02d/%02d".format(it.first, it.second) } ?: ""
     val dirty = if (isNew) {
-        name.isNotBlank() || phone.isNotBlank() || email.isNotBlank() || notes.isNotBlank() || birthday.isNotEmpty()
+        name.isNotBlank() || phone.isNotBlank() || email.isNotBlank() || notes.isNotBlank() || birthday.isNotEmpty() ||
+            birthYear > 0 || city.isNotBlank()
     } else {
         name != client.name || phone != client.phone || email != client.email ||
-            notes != client.notes || birthday != originalBirthday
+            notes != client.notes || birthday != originalBirthday ||
+            birthYear != client.birthYear || city.trim() != client.city
     }
     LaunchedEffect(dirty) { onDirty(dirty) }
 
@@ -344,6 +364,45 @@ private fun ClientForm(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Choice(bDay, (0..31).toList(), { if (it == 0) "Giorno" else it.toString() }, { bDay = it })
                     Choice(bMonth, (0..12).toList(), { if (it == 0) "Mese" else MESI[it - 1] }, { bMonth = it })
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                FieldLabel("Anno di nascita")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val thisYear = LocalDate.now().year
+                    Choice(
+                        birthYear,
+                        listOf(0) + (thisYear - 12 downTo thisYear - 100).toList(),
+                        { if (it == 0) "Anno" else it.toString() },
+                        { birthYear = it },
+                    )
+                    val age = current.age()
+                    if (age != null) {
+                        Text("$age anni", style = SerifTitle.copy(fontSize = 20.sp), color = Rose.Aqua)
+                    }
+                }
+            }
+            Column(Modifier.weight(1f)) {
+                OutlinedTextField(
+                    city, { city = it }, label = { Text("Comune di residenza") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                val q = city.trim()
+                val sugg = if (q.isEmpty()) emptyList() else knownCities.filter {
+                    it.contains(q, ignoreCase = true) && !it.equals(q, ignoreCase = true)
+                }.take(4)
+                if (sugg.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .padding(top = 6.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        sugg.forEach { c -> AssistChip(onClick = { city = c }, label = { Text(c) }) }
+                    }
                 }
             }
         }

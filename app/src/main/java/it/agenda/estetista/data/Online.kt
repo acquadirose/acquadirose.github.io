@@ -37,7 +37,7 @@ data class OnlineRequest(
     val creata: Instant?,
 )
 
-data class OnlineClient(val uid: String, val nome: String, val telefono: String, val email: String)
+data class OnlineClient(val uid: String, val nome: String, val telefono: String, val email: String, val comune: String, val annoNascita: Int)
 
 class OnlineException(message: String) : Exception(message)
 
@@ -125,7 +125,10 @@ class Online(context: Context) {
         )
         return runQuery(q).mapNotNull { doc ->
             val f = doc.optJSONObject("fields") ?: return@mapNotNull null
-            OnlineClient(doc.getString("name").substringAfterLast('/'), f.str("nome"), f.str("telefono"), f.str("email"))
+            OnlineClient(
+                doc.getString("name").substringAfterLast('/'), f.str("nome"), f.str("telefono"), f.str("email"),
+                f.str("comune"), f.optJSONObject("annoNascita")?.optString("integerValue")?.toIntOrNull() ?: 0,
+            )
         }
     }
 

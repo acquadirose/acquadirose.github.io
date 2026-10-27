@@ -54,6 +54,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import it.agenda.estetista.AgendaViewModel
 import it.agenda.estetista.data.Appointment
+import androidx.compose.material3.TextButton
+import it.agenda.estetista.data.age
+import it.agenda.estetista.data.Client
+import it.agenda.estetista.data.AgeBand
 import it.agenda.estetista.data.Status
 import it.agenda.estetista.data.statusEnum
 import it.agenda.estetista.util.IT
@@ -102,14 +106,32 @@ fun StatsScreen(vm: AgendaViewModel, onBack: () -> Unit) {
     }
 
     val flow = remember(from, to) { vm.appointmentsBetween(from, to) }
-    val all by flow.collectAsState(initial = emptyList())
+    val raw by flow.collectAsState(initial = emptyList())
+
+    // ── Filtri anagrafici ──
+    var ageFilter by remember { mutableStateOf<AgeBand?>(null) }
+    var cityFilter by remember { mutableStateOf<String?>(null) }
+    val byId = remember(clients) { clients.associateBy { it.id } }
+    val byName = remember(clients) { clients.associateBy { it.name.trim().lowercase() } }
+    fun clientOf(a: Appointment): Client? = a.clientId?.let { byId[it] } ?: byName[a.clientName.trim().lowercase()]
+    fun matches(c: Client?): Boolean =
+        (ageFilter == null || AgeBand.of(c?.age()) == ageFilter) &&
+            (cityFilter == null || c?.city.equals(cityFilter, ignoreCase = true))
+    val filtering = ageFilter != null || cityFilter != null
+    val all = if (filtering) raw.filter { matches(clientOf(it)) } else raw
     val done = all.filter { it.statusEnum != Status.DISDETTO }
     val cancelled = all.size - done.size
+    val cities = remember(clients) {
+        clients.map { it.city }.filter { it.isNotBlank() }.groupingBy { it }.eachCount()
+            .entries.sortedByDescending { it.value }.map { it.key }
+    }
+    // clienti (con scheda) che hanno avuto appuntamenti nel periodo
+    val periodClients = done.mapNotNull { clientOf(it) }.distinctBy { it.id }
 
     val zone = ZoneId.systemDefault()
     val newClients = clients.count {
         val d = Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate()
-        !d.isBefore(from) && !d.isAfter(to)
+        !d.isBefore(from) && !d.isAfter(to) && matches(it)
     }
 
     Column(
@@ -153,6 +175,33 @@ fun StatsScreen(vm: AgendaViewModel, onBack: () -> Unit) {
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // ── Filtri ──
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Età", color = Rose.Muted)
+                    Choice(ageFilter, listOf<AgeBand?>(null) + AgeBand.entries, { it?.label ?: "Tutte" }, { ageFilter = it })
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Comune", color = Rose.Muted)
+                    Choice(cityFilter, listOf<String?>(null) + cities, { it ?: "Tutti" }, { cityFilter = it })
+                }
+                if (filtering) {
+                    TextButton(onClick = { ageFilter = null; cityFilter = null }) { Text("Azzera filtri") }
+                }
+            }
+            if (filtering) {
+                val excluded = raw.count { clientOf(it).let { c -> c == null || (ageFilter != null && c.age() == null) || (cityFilter != null && c.city.isBlank()) } }
+                if (excluded > 0) {
+                    Text(
+                        "$excluded appuntamenti esclusi perché la cliente non ha ${if (ageFilter != null) "anno di nascita" else "comune"} in scheda.",
+                        fontSize = 13.sp, color = Rose.Muted,
+                    )
+                }
+            }
+
             // ── Numeri chiave ──
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -167,6 +216,8 @@ fun StatsScreen(vm: AgendaViewModel, onBack: () -> Unit) {
                     if (all.isEmpty()) "0%" else "${(cancelled * 100f / all.size).roundToInt()}%",
                     sub = "$cancelled su ${all.size}",
                 )
+                val ages = periodClients.mapNotNull { it.age() }
+                Kpi("Età media", if (ages.isEmpty()) "—" else "${ages.average().roundToInt()} anni", sub = if (ages.isEmpty()) null else "su ${ages.size} clienti")
                 Kpi(
                     "Durata media",
                     if (done.isEmpty()) "—" else "${done.sumOf { it.durationMin } / done.size} min",
@@ -237,6 +288,28 @@ fun StatsScreen(vm: AgendaViewModel, onBack: () -> Unit) {
                     val hours = (s.openMin / 60 until (s.closeMin + 59) / 60).toList()
                     val counts = hours.map { h -> done.count { it.startMin / 60 == h } }
                     BarChart(counts, hours.map { it.toString() }, Rose.Primary, height = 160.dp)
+                }
+            }
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                maxItemsInEachRow = 2,
+            ) {
+                // ── Fasce d'età ──
+                ChartCard("Clienti per fascia d'età", Modifier.weight(1f).widthIn(min = 320.dp)) {
+                    val counts = AgeBand.entries.map { b -> b.label to periodClients.count { AgeBand.of(it.age()) == b } }
+                    val unknown = periodClients.count { it.age() == null }
+                    BarChart(counts.map { it.second }, counts.map { it.first }, Rose.Primary, height = 160.dp)
+                    if (unknown > 0) Text("$unknown clienti senza anno di nascita", fontSize = 12.sp, color = Rose.Muted)
+                }
+                // ── Comuni ──
+                ChartCard("Clienti per comune", Modifier.weight(1f).widthIn(min = 320.dp)) {
+                    val top = periodClients.groupBy { it.city.ifBlank { "Non indicato" } }
+                        .map { (k, v) -> Triple(k, v.size, if (k == "Non indicato") Rose.HourLine else Rose.Aqua) }
+                        .sortedWith(compareBy<Triple<String, Int, Color>> { it.first == "Non indicato" }.thenByDescending { it.second })
+                        .take(8)
+                    HBars(top)
                 }
             }
 
